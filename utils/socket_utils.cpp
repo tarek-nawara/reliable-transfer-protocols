@@ -9,7 +9,7 @@
 namespace utils {
     int socket_wrapper() {
         int server_socket;
-        if ((server_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) == -1) {
+        if ((server_socket = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0) {
             utils::die_with_error("failed");
         }
         return server_socket;
@@ -53,6 +53,14 @@ namespace utils {
             die_with_error("listen() failed");
         }
     }
+
+    void sendto_wrapper(int socket, const void *packet, size_t packet_len, sockaddr *server_addr, socklen_t server_addr_len) {
+	ssize_t send_res = sendto(server_socket, packet, packet_len, 0, server_addr, server_addr,len);
+	if (send_res < 0) {
+	    die_with_error("sendto() failed");
+	}
+    }
+
 
     int accept_wrapper(int socket, struct sockaddr *client_addr, socklen_t *addr_len) {
         int client_socket = accept(socket, client_addr, addr_len);

@@ -162,6 +162,9 @@ namespace utils {
     /* Create a new file then write the given buffer to this file */
     void write_to_file(const std::string &file_name, char *rcv_buf, ssize_t byte_rcv);
 
+    void sendto_wrapper(int socket, const void *packet, size_t packet_len, sockaddr *server_addr, socklen_t server_addr_len);
+
+
     /* Fork a new process, if fork fails will terminate
        Program execution */
     pid_t fork_wrapper();
