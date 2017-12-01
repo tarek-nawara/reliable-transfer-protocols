@@ -30,6 +30,7 @@
 #include <chrono>
 #include <algorithm>
 #include <vector>
+#include <memory>
 #include <sys/sendfile.h>
 #include <sys/wait.h>
 #include <sys/mman.h>
@@ -38,8 +39,22 @@
 #define MEDIUMLINE 256
 #define MINILINE 16
 #define MAXPINDING 5
+#define PACKET_LEN 50
 
 namespace utils {
+
+    /** Representation for data packet */
+    typedef struct {
+        uint16_t  len;
+        uint32_t seqno;
+        char data[PACKET_LEN];
+    } Packet;
+
+    /** Representation for ack packet */
+    typedef struct {
+        uint16_t len;
+        uint32_t seqno;
+    } AckPacket;
 
     /**
      * Creating a socket.
