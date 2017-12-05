@@ -72,7 +72,7 @@ StopWaitServer::handle_wait_for_ack_zero(int server_socket, sockaddr_in &client_
         socklen_t client_add_size = sizeof(client_addr);
         ssize_t recv_res = recvfrom(server_socket, ack_packet, sizeof(*ack_packet), 0,
                                     (struct sockaddr *) &client_addr, &client_add_size);
-        if (recv_res > 0 && ack_packet->seqno == 0) { // TODO handle timeout
+        if (recv_res > 0 && ack_packet->seqno == 0) { // @tarek-nawara Issue: https://bitbucket.org/tarek_nawara/socket-programming-two/issues/1/handle-time-outs
             return StopWaitServer::State::SENDING_PACKET_ONE;
         } else if (recv_res > 0) {
             send_packet(server_socket, client_addr, packet_to_send);
@@ -104,7 +104,7 @@ StopWaitServer::handle_wait_for_ack_one(int server_socket, sockaddr_in &client_a
         socklen_t client_add_size = sizeof(client_addr);
         ssize_t recv_res = recvfrom(server_socket, ack_packet, sizeof(*ack_packet), 0,
                                     (struct sockaddr *) &client_addr, &client_add_size);
-        if (recv_res > 0 && ack_packet->seqno == 1) { // TODO should handle timeout
+        if (recv_res > 0 && ack_packet->seqno == 1) { // @tarek-nawara, issue: https://bitbucket.org/tarek_nawara/socket-programming-two/issues/1/handle-time-outs
             return StopWaitServer::State::SENDING_PACKET_ZERO;
         } else if (recv_res > 0) {
             send_packet(server_socket, client_addr, packet_to_send);
