@@ -1,8 +1,9 @@
-//
-// Created by tarek on 12/1/17.
-//
+/**
+ *  File: StopWaitServer.cpp
+ *  Description: holder for implementation of stop and wait protocol
+ *  Created at: 2017-12-1
+ */
 
-#include <socket_utils.h>
 #include "StopWaitServer.h"
 
 void StopWaitServer::handle_client() {

@@ -1,6 +1,8 @@
-//
-// Created by tarek on 12/1/17.
-//
+/**
+ *  File: StopWaitServer.h
+ *  Description: holder for stop and wait protocol interface
+ *  Created at: 2017-12-1
+ */
 
 #ifndef ALTERNATING_SERVER_STOPWAITSERVER_H
 #define ALTERNATING_SERVER_STOPWAITSERVER_H
