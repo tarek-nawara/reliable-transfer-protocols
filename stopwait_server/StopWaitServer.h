@@ -9,34 +9,43 @@
 
 #include "socket_utils.h"
 
-#define WINDOW_SIZE 512
+#define TIMEOUT 2
 
 class StopWaitServer {
 public:
-    enum State {
+    enum class State {
         WAIT_FOR_ACK_ZERO,
         SENDING_PACKET_ZERO,
         WAIT_FOR_ACK_ONE,
         SENDING_PACKET_ONE
     };
 
+    explicit StopWaitServer(int server_socket);
+
     void handle_client();
-    void receive_client_request(int server_socket, sockaddr_in &client_addr);
+
+    void receive_client_request();
+
 private:
+    struct sockaddr_in client_addr;
+    int server_socket;
 
-    State handle_wait_for_ack_zero(int server_socket, sockaddr_in &client_addr, utils::Packet *packet);
+    void handle_sending_file(utils::Packet *request_packet);
 
-    void set_connection_time_out(int server_socket);
+    State handle_wait_for_ack_zero(utils::Packet *packet_to_send);
 
-    void send_packet(int server_socket, sockaddr_in &client_addr, utils::Packet *packet);
+    std::pair<State, utils::Packet *> handle_sending_packet_zero(std::ifstream &input_stream);
 
-    std::pair<State, utils::Packet *> handle_sending_packet_zero(int server_socket, sockaddr_in &client_addr, std::ifstream &input_stream);
+    State handle_wait_for_ack_one(utils::Packet *packet_to_send);
 
-    std::pair<State, utils::Packet *> handle_sending_packet_one(int server_socket, sockaddr_in &client_addr, std::ifstream &input_stream);
+    std::pair<State, utils::Packet *> handle_sending_packet_one(std::ifstream &input_stream);
 
-    State handle_wait_for_ack_one(int server_socket, sockaddr_in &client_addr, utils::Packet *packet_to_send);
+    void send_packet(utils::Packet *packet);
 
-    void handle_sending_file(int server_socket, sockaddr_in &client_addr, utils::Packet *packet);
+    State handle_wait_for_ack(utils::Packet *packet_to_send, int ack_no, State next_state);
+
+    std::pair<State, utils::Packet *>
+    handle_sending_packet(std::ifstream &input_stream, uint32_t packet_no, State next_state);
 };
 
 

@@ -11,11 +11,29 @@
 
 class StopWaitClient {
 public:
-    void get_file(std::string& requested_file, std::string& destination_path, int server_socket);
-    void request_file(std::string &filename, int server_socket, sockaddr_in server_addr);
-private:
+    enum class State {
+        WAIT_FOR_PACKET_ZERO,
+        WAIT_FOR_PACKET_ONE,
+        TERMINATE
+    };
 
-    void send_ack(int server_socket);
+    StopWaitClient(int server_socket, sockaddr_in &server_addr);
+
+    void request_file(std::string &filename);
+
+private:
+    int server_socket;
+    sockaddr_in server_addr;
+
+    void send_ack(uint32_t ack_no);
+
+    void write_packet(std::ofstream &output_stream, char *data, int len);
+
+    State handle_wait_for_packet_zero(std::ofstream &output_stream);
+
+    State handle_wait_for_packet_one(std::ofstream &output_stream);
+
+    State handle_wait_for_packet(uint32_t seqno, State next_state, std::ofstream &output_stream);
 };
 
 
