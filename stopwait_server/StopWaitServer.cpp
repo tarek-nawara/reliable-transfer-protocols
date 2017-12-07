@@ -83,7 +83,7 @@ StopWaitServer::handle_sending_file(utils::Packet *request_packet) {
     auto *termination_packet = new utils::Packet();
     termination_packet->seqno = 100;
     termination_packet->len = 0;
-    send_packet(packet);        // loss
+    send_packet(termination_packet);        // loss
 }
 
 StopWaitServer::State
