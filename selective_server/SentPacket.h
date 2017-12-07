@@ -1,6 +1,9 @@
-//
-// Created by tarek on 12/7/17.
-//
+/**
+ *  File: SentPacket.h
+ *  Description: Interface for an entity representing the sent
+ *               packet to the client.
+ *  Created at: 2017-12-8
+ */
 
 #ifndef SELECTIVE_SERVER_SENTPACKET_H
 #define SELECTIVE_SERVER_SENTPACKET_H

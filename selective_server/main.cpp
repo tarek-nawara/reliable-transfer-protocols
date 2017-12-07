@@ -3,7 +3,6 @@
  *  Created at: 2017-12-1
  */
 
-#include <iostream>
 #include "socket_utils.h"
 
 void set_connection_time_out(int server_socket);

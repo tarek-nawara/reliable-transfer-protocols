@@ -1,6 +1,8 @@
-//
-// Created by tarek on 12/7/17.
-//
+/**
+ *  File: SentPacket.cpp
+ *  Description: implementation for SentPacket interface
+ *  Created at: 2017-12-8
+ */
 
 #include "SentPacket.h"
 

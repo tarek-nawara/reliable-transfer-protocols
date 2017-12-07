@@ -1,6 +1,8 @@
-//
-// Created by tarek on 12/7/17.
-//
+/**
+ *  File: SelectiveServer.cpp
+ *  Description: Implementation for the selective repeat protocol
+ *  Created at: 2017-12-8
+ */
 
 #include <socket_utils.h>
 #include "SelectiveServer.h"

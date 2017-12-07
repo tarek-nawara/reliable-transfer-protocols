@@ -1,6 +1,8 @@
-//
-// Created by tarek on 12/7/17.
-//
+/**
+ *  File: SelectiveServer.h
+ *  Description: Interface for the selective repeat protocol
+ *  Created at: 2017-12-8
+ */
 
 #ifndef SELECTIVE_SERVER_SELECTIVESERVER_H
 #define SELECTIVE_SERVER_SELECTIVESERVER_H
