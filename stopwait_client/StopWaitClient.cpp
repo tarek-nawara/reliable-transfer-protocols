@@ -25,7 +25,7 @@ StopWaitClient::request_file(std::string &filename) {
     std::cout << "[request_file]---Send packet successfully" << '\n';
     std::ofstream output_stream;
     output_stream.open(filename);
-    auto current_state = handle_wait_for_packet_zero(output_stream);
+    auto current_state = StopWaitClient::State::WAIT_FOR_PACKET_ZERO;
     while (true) {
         switch (current_state) {
             case StopWaitClient::State::WAIT_FOR_PACKET_ZERO:
@@ -35,6 +35,8 @@ StopWaitClient::request_file(std::string &filename) {
                 current_state = handle_wait_for_packet_one(output_stream);
                 break;
             case StopWaitClient::State::TERMINATE:
+                output_stream << std::flush;
+                output_stream.close();
                 return;
         }
     }
@@ -58,13 +60,12 @@ StopWaitClient::handle_wait_for_packet(uint32_t seqno, StopWaitClient::State nex
         ssize_t recv_res = recvfrom(server_socket, packet, sizeof(*packet), 0,
                                     (struct sockaddr *) &server_addr, &server_addr_size);
         if (recv_res > 0 && packet->seqno == seqno) {
-            if (packet->len == 0) {
-                return StopWaitClient::State::TERMINATE;
-            }
             write_packet(output_stream, packet->data, packet->len);
             send_ack(seqno);
             return next_state;
-        } else if (recv_res > 0) {
+        } else if (recv_res > 0 && packet->len == 0) {
+            return StopWaitClient::State::TERMINATE;
+        } else if (recv_res > 0){
             send_ack((seqno + 1) % 2);
         }
     }

@@ -42,10 +42,10 @@ private:
 
     void send_packet(utils::Packet *packet);
 
-    State handle_wait_for_ack(utils::Packet *packet_to_send, int ack_no, State next_state);
-
     std::pair<State, utils::Packet *>
     handle_sending_packet(std::ifstream &input_stream, uint32_t packet_no, State next_state);
+
+    State handle_wait_for_ack(utils::Packet *packet_to_send, uint32_t ack_no, State next_state);
 };
 
 

@@ -13,8 +13,8 @@ int main() {
     struct sockaddr_in server_addr;
     init_server_addr(server_addr);
     StopWaitClient client{server_socket, server_addr};
-    std::string filename = "hamada.txt";
-    client.request_file(filename, server_socket, server_addr);
+    std::string filename = "hello.txt";
+    client.request_file(filename);
     return 0;
 }
 

@@ -55,7 +55,7 @@ namespace utils {
     }
 
     void sendto_wrapper(int socket, const void *packet, size_t packet_len, sockaddr *server_addr, socklen_t server_addr_len) {
-	ssize_t send_res = sendto(server_socket, packet, packet_len, 0, server_addr, server_addr,len);
+	ssize_t send_res = sendto(socket, packet, packet_len, 0, server_addr, server_addr_len);
 	if (send_res < 0) {
 	    die_with_error("sendto() failed");
 	}
