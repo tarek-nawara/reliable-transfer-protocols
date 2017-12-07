@@ -1,6 +1,8 @@
-//
-// Created by tarek on 12/7/17.
-//
+/**
+ *  File: SelectiveClient.h
+ *  Description: Interface for selective repeat receiver
+ *  Created at: 2017-12-8
+ */
 
 #ifndef SELECTIVE_CLIENT_SELECTIVECLIENT_H
 #define SELECTIVE_CLIENT_SELECTIVECLIENT_H
