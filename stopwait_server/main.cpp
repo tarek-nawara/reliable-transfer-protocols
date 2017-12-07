@@ -17,14 +17,14 @@ int main() {
     std::cout << "---Server start---" << '\n';
     std::cout << "---Socket number=" << server_socket << '\n';
     StopWaitServer server{server_socket};
-    server.receive_client_request();
+    server.handle_client_requests_fork();
     return 0;
 }
 
 sockaddr_in &init_server_addr(sockaddr_in &server_addr) {
-    memset(&server_addr, 0, sizeof(server_addr));   /* Zero out structure */
-    server_addr.sin_family = AF_INET;                /* Internet address family */
-    server_addr.sin_addr.s_addr = htonl(INADDR_ANY); /* Any incoming interface */
-    server_addr.sin_port = htons(5000);      /* Local port */
+    memset(&server_addr, 0, sizeof(server_addr));
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    server_addr.sin_port = htons(5000);
     return server_addr;
 }

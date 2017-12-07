@@ -17,7 +17,7 @@ StopWaitClient::request_file(std::string &filename) {
     auto *packet = new utils::Packet();
     packet->seqno = 0;
     packet->len = filename.length();
-    for (int i = 0; i < filename.length(); ++i) {
+    for (size_t i = 0; i < filename.length(); ++i) {
         packet->data[i] = filename[i];
     }
     utils::sendto_wrapper(server_socket, packet, sizeof(packet) + sizeof(packet->data),
@@ -77,7 +77,7 @@ StopWaitClient::send_ack(uint32_t ack_no) {
     ack_packet->seqno = ack_no;
     utils::sendto_wrapper(server_socket, ack_packet, sizeof(ack_packet),
                           (struct sockaddr *) &server_addr, sizeof(server_addr));
-    std::cout << "[send_ack]---Send packet successfully" << '\n';
+    std::cout << "[send_ack]---Send ack packet with ackno=" << ack_no << '\n';
 }
 
 void

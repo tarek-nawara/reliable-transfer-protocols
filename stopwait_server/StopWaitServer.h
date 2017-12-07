@@ -22,13 +22,13 @@ public:
 
     explicit StopWaitServer(int server_socket);
 
-    void handle_client();
-
-    void receive_client_request();
+    void handle_client_requests_fork();
 
 private:
     struct sockaddr_in client_addr;
     int server_socket;
+    pid_t process_id;
+    static int *child_count;
 
     void handle_sending_file(utils::Packet *request_packet);
 

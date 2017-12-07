@@ -4,34 +4,48 @@
  *  Created at: 2017-12-1
  */
 
-#include <socket_utils.h>
 #include "StopWaitServer.h"
 
 StopWaitServer::StopWaitServer(int server_socket) {
     this->server_socket = server_socket;
 }
 
+int *StopWaitServer::child_count =
+        static_cast<int *>(mmap(nullptr, sizeof *child_count, PROT_READ | PROT_WRITE,
+                                MAP_SHARED | MAP_ANONYMOUS, -1, 0));
 
 void
-StopWaitServer::handle_client() {
-    // TODO
-}
-
-void
-StopWaitServer::receive_client_request() {
+StopWaitServer::handle_client_requests_fork() {
     auto *request_packet = new utils::Packet();
     while (true) {
         socklen_t client_add_size = sizeof(client_addr);
         ssize_t recv_res = recvfrom(server_socket, request_packet, sizeof(*request_packet), 0,
                                     (struct sockaddr *) &client_addr, &client_add_size);
         if (recv_res > 0) {
-            std::cout << "[receive_client_request]--- Packet seqno=" << request_packet->seqno << '\n';
-            std::cout << "[receive_client_request]--- Packet len=" << request_packet->len << '\n';
-            std::cout << "[receive_client_request]--- Packet data=" << std::string(request_packet->data) << '\n';
-            handle_sending_file(request_packet);
-            std::cout << '\n';
-            break;
+            std::cout << "[handle_client_requests_fork]--- Packet seqno=" << request_packet->seqno << '\n';
+            std::cout << "[handle_client_requests_fork]--- Packet len=" << request_packet->len << '\n';
+            std::cout << "[handle_client_requests_fork]--- Packet data=" << std::string(request_packet->data) << '\n';
+            process_id = utils::fork_wrapper();
+            if (process_id == 0) {
+                std::cout << "[handle_client_requests_fork]--- Start serving the request from the child" << '\n';
+                handle_sending_file(request_packet);
+                exit(0);
+            }
+            ++(*child_count);
+
+            std::cout << "[handle_client_requests_fork]--- With child process id=" << process_id << '\n';
+            std::cout << "[handle_client_requests_fork]--- Number of children=" << (*child_count) << '\n';
+            while (*child_count > 0) {
+                process_id = utils::waitpid_wrapper();
+                if (process_id == 0) {
+                    break;
+                } else {
+                    --(*child_count);
+                    std::cout << "[handle_client_requests_fork]--- Closing child with process id=" << process_id << '\n';
+                }
+            }
         }
+
     }
 }
 
@@ -49,34 +63,34 @@ StopWaitServer::handle_sending_file(utils::Packet *request_packet) {
     auto current_state = StopWaitServer::State::SENDING_PACKET_ZERO;
     utils::Packet *packet = nullptr;
     bool waiting_for_ack = false;
-    while (chunk_count > 0  || waiting_for_ack) {
+    while (chunk_count > 0 || waiting_for_ack) {
         switch (current_state) {
             case StopWaitServer::State::WAIT_FOR_ACK_ZERO: {
                 current_state = handle_wait_for_ack_zero(packet);
-		waiting_for_ack = false;
-            }
+                waiting_for_ack = false;
                 break;
+            }
             case StopWaitServer::State::WAIT_FOR_ACK_ONE: {
                 current_state = handle_wait_for_ack_one(packet);
-		waiting_for_ack = false;
-            }
+                waiting_for_ack = false;
                 break;
+            }
             case StopWaitServer::State::SENDING_PACKET_ZERO: {
                 auto res_zero = handle_sending_packet_zero(input_stream);;
                 current_state = res_zero.first;
                 packet = res_zero.second;
-		waiting_for_ack = true;
+                waiting_for_ack = true;
                 --chunk_count;
-            }
                 break;
+            }
             case StopWaitServer::State::SENDING_PACKET_ONE: {
                 auto res_one = handle_sending_packet_one(input_stream);;
                 current_state = res_one.first;
                 packet = res_one.second;
-		waiting_for_ack = true;
+                waiting_for_ack = true;
                 --chunk_count;
-            }
                 break;
+            }
         }
     }
     std::cout << "[handle_sending_file]---Sending termination packet" << '\n';
@@ -115,7 +129,7 @@ StopWaitServer::handle_wait_for_ack(utils::Packet *packet_to_send, uint32_t ack_
         socklen_t client_add_size = sizeof(client_addr);
         ssize_t recv_res = recvfrom(server_socket, ack_packet, sizeof(*ack_packet), 0,
                                     (struct sockaddr *) &client_addr, &client_add_size);
-	std::cout << "[handle_wait_for_ack]--- Received AckPacket seqno=" << ack_packet->seqno << '\n';
+        std::cout << "[handle_wait_for_ack]--- Received AckPacket seqno=" << ack_packet->seqno << '\n';
         if (recv_res > 0 && ack_packet->seqno == ack_no) {
             return next_state;
         } else {
