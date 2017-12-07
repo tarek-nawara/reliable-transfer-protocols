@@ -65,7 +65,7 @@ StopWaitClient::handle_wait_for_packet(uint32_t seqno, StopWaitClient::State nex
             return next_state;
         } else if (recv_res > 0 && packet->len == 0) {
             return StopWaitClient::State::TERMINATE;
-        } else if (recv_res > 0){
+        } else {
             send_ack((seqno + 1) % 2);
         }
     }
@@ -86,3 +86,5 @@ StopWaitClient::write_packet(std::ofstream &output_stream, char *data, int len) 
         output_stream << data[i];
     }
 }
+
+

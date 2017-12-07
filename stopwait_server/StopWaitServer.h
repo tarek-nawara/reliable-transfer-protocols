@@ -9,10 +9,12 @@
 
 #include "socket_utils.h"
 
-#define TIMEOUT 2
+#define TIME_OUT_DURATION 2
 
 class StopWaitServer {
 public:
+    StopWaitServer(int server_socket, double plp, unsigned int seed);
+
     enum class State {
         WAIT_FOR_ACK_ZERO,
         SENDING_PACKET_ZERO,
@@ -20,15 +22,12 @@ public:
         SENDING_PACKET_ONE
     };
 
-    explicit StopWaitServer(int server_socket);
-
-    void handle_client_requests_fork();
+    void handle_client_request();
 
 private:
     struct sockaddr_in client_addr;
     int server_socket;
-    pid_t process_id;
-    static int *child_count;
+    double plp;
 
     void handle_sending_file(utils::Packet *request_packet);
 
@@ -46,6 +45,10 @@ private:
     handle_sending_packet(std::ifstream &input_stream, uint32_t packet_no, State next_state);
 
     State handle_wait_for_ack(utils::Packet *packet_to_send, uint32_t ack_no, State next_state);
+
+    bool should_send_packet();
+
+    void send_packet_with_prob(utils::Packet *packet);
 };
 
 
