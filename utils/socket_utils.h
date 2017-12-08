@@ -45,7 +45,7 @@ namespace utils {
 
     /** Representation for data packet */
     typedef struct {
-        uint16_t  len;
+        uint16_t len;
         uint32_t seqno;
         char data[PACKET_LEN];
     } Packet;
@@ -56,89 +56,36 @@ namespace utils {
         uint32_t seqno;
     } AckPacket;
 
-    /**
-     * Creating a socket.
-     *
-     * @return         -1 for failure, or socket number for success
-     */
+    /** Creating a socket. */
     int socket_wrapper();
 
-    /**
-     * Establish connection with the given address.
-     *
-     * @param socket         socket number.
-     * @param foreignAddress pointer to sockaddr containing internet address and port of the server
-     * @param address_len    length of the address structure = {@code sizeof(struct sockaddr_in)}
-     */
+    /** Establish connection with the given address. */
     void connect_wrapper(int socket, const struct sockaddr *foreign_addr, socklen_t addr_len);
 
-    /**
-     * Send a message to the given address.
-     *
-     * @param socket       socket number
-     * @param msg          pointer on the message to send
-     * @param msg_len      length of the message to send
-     * @param flags        way to change the default behavior
-     * @param foreign_addr pointer to sockaddr containing internet address and port of the server
-     * @param addr_len     length of the address structure = {@code sizeof(struct sockaddr_in)}
-     * @return             -1 for failure, length of sent message for success
-     */
+    /** Send a message to the given address. */
     ssize_t send_wrapper(int socket,
                          const void *msg,
                          size_t msg_len,
                          int flags);
 
-    /**
-     * Receive message from the given address.
-     *
-     * @param socket       socket number
-     * @param rcv_buffer   pointer on rcv buffer
-     * @param buffer_len   length of the rcv buffer
-     * @param flags        way to change the default behavior
-     * @param foreign_addr pointer to sockaddr containing internet address and port of the server
-     * @param addr_len     length of the address structure = {@code sizeof(struct sockaddr_in)}
-     * @return             -1 for failure, length of sent message for success
-     */
+    /** Receive message from the given address. */
     ssize_t recv_wrapper(int socket,
-                        void *rcv_buffer,
-                        size_t buffer_len,
-                        int flags);
+                         void *rcv_buffer,
+                         size_t buffer_len,
+                         int flags);
 
-    /**
-     * Assign to the socket a local address and a port.
-     *
-     * @param socket     socket number
-     * @param local_addr struct containing the internet address and port to listen on
-     * @param addr_len   length of the address struct = {@code sizeof(struct sockaddr_in}
-     */
+    /** Assign to the socket a local address and a port. */
     void bind_wrapper(int socket, const struct sockaddr *local_addr, socklen_t addr_len);
 
-    /**
-     * Causes internal state changes to the given socket.
-     *
-     * @param socket      socket number
-     * @param queue_limit limit of incoming connections that can be waiting at any time
-     */
+    /** Causes internal state changes to the given socket. */
     void listen_wrapper(int socket, int queue_limit);
 
-    /**
-     * Dequeue the next connection on the queue of the socket,
-     * if the queue is empty it will block until a connection request
-     * arrives.
-     *
-     * @param socket      socket number
-     * @param client_addr address of the client
-     * @param addr_len    maximum size of client address
-     * @return            descriptor for a new socket that is connected to the client if
-     *                    successful, -1 on failure
-     */
+    /** Dequeue the next connection on the queue of the socket,
+     *  if the queue is empty it will block until a connection request
+     *  arrives. */
     int accept_wrapper(int socket, struct sockaddr *client_addr, socklen_t *addr_len);
 
-    /**
-     * Close the connection.
-     *
-     * @param socket socket number
-     */
+    /** Close the connection. */
     void close_wrapper(int socket);
 
     /* Read the ip address of the given struct address */
@@ -162,8 +109,8 @@ namespace utils {
     /* Create a new file then write the given buffer to this file */
     void write_to_file(const std::string &file_name, char *rcv_buf, ssize_t byte_rcv);
 
-    void sendto_wrapper(int socket, const void *packet, size_t packet_len, sockaddr *server_addr, socklen_t server_addr_len);
-
+    void
+    sendto_wrapper(int socket, const void *packet, size_t packet_len, sockaddr *server_addr, socklen_t server_addr_len);
 
     /* Fork a new process, if fork fails will terminate
        Program execution */
@@ -181,11 +128,19 @@ namespace utils {
     /* Trim all whitespaces from both sides of a string */
     std::string &trim(std::string &s);
 
-    /**
-     * Log an error message and terminate program execution.
-     *
-     * @param error_msg error message to log
-     */
+    /** Read command line arguments from the given file*/
+    std::unique_ptr<std::vector<std::string>> read_parameters(std::string input_file_name);
+
+    /** Set connection timeout */
+    void set_connection_time_out(int server_socket, int seconds);
+
+    /** Initialize the server address struct */
+    void init_server_addr(sockaddr_in &server_addr, uint32_t ip_addr, uint16_t port_number);
+
+    /** Write a packet to the output stream */
+    void write_packet(std::ofstream &output_stream, Packet *packet);
+
+    /** Log an error message and terminate program execution. */
     void die_with_error(const char *error_msg);
 }
 

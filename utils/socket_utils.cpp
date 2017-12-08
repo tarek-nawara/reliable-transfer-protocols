@@ -28,7 +28,7 @@ namespace utils {
         if (send(socket, msg, msg_len, flags) != msg_len) {
             die_with_error("send() sent different number of bytes than expected");
         }
-	return msg_len;
+        return msg_len;
     }
 
     ssize_t recv_wrapper(int socket,
@@ -54,11 +54,12 @@ namespace utils {
         }
     }
 
-    void sendto_wrapper(int socket, const void *packet, size_t packet_len, sockaddr *server_addr, socklen_t server_addr_len) {
-	ssize_t send_res = sendto(socket, packet, packet_len, 0, server_addr, server_addr_len);
-	if (send_res < 0) {
-	    die_with_error("sendto() failed");
-	}
+    void sendto_wrapper(int socket, const void *packet, size_t packet_len, sockaddr *server_addr,
+                        socklen_t server_addr_len) {
+        ssize_t send_res = sendto(socket, packet, packet_len, 0, server_addr, server_addr_len);
+        if (send_res < 0) {
+            die_with_error("sendto() failed");
+        }
     }
 
 
@@ -156,6 +157,39 @@ namespace utils {
 
     std::string &trim(std::string &s) {
         return left_trim(right_trim(s));
+    }
+
+    std::unique_ptr<std::vector<std::string>> read_parameters(std::string input_file_name) {
+        std::ifstream input_file(input_file_name);
+        std::string ip_addr, filename;
+        std::string line;
+        auto res = std::make_unique<std::vector<std::string>>();
+        while (getline(input_file, line)) {
+            line = utils::trim(line);
+            if (line.empty()) continue;
+            res->push_back(line);
+        }
+        return res;
+    }
+
+    void set_connection_time_out(int server_socket, int seconds) {
+        struct timeval tv = {seconds, 0};
+        if (setsockopt(server_socket, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) < 0) {
+            perror("Error");
+        }
+    }
+
+    void init_server_addr(sockaddr_in &server_addr, std::uint32_t ip_addr, uint16_t port_number) {
+        memset(&server_addr, 0, sizeof(server_addr));
+        server_addr.sin_family = AF_INET;
+        server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+        server_addr.sin_port = htons(5000);
+    }
+
+    void write_packet(std::ofstream &output_stream, Packet *packet) {
+        for (int i = 0; i < packet->len; ++i) {
+            output_stream << packet->data[i];
+        }
     }
 
     void die_with_error(const char *error_msg) {

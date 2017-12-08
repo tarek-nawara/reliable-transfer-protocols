@@ -60,7 +60,7 @@ StopWaitClient::handle_wait_for_packet(uint32_t seqno, StopWaitClient::State nex
         ssize_t recv_res = recvfrom(server_socket, packet, sizeof(*packet), 0,
                                     (struct sockaddr *) &server_addr, &server_addr_size);
         if (recv_res > 0 && packet->seqno == seqno) {
-            write_packet(output_stream, packet->data, packet->len);
+            utils::write_packet(output_stream, packet);
             send_ack(seqno);
             return next_state;
         } else if (recv_res > 0 && packet->len == 0) {
@@ -79,12 +79,4 @@ StopWaitClient::send_ack(uint32_t ack_no) {
                           (struct sockaddr *) &server_addr, sizeof(server_addr));
     std::cout << "[send_ack]---Send ack packet with ackno=" << ack_no << '\n';
 }
-
-void
-StopWaitClient::write_packet(std::ofstream &output_stream, char *data, int len) {
-    for (int i = 0; i < len; ++i) {
-        output_stream << data[i];
-    }
-}
-
 

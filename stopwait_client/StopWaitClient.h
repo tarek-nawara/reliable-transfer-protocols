@@ -27,8 +27,6 @@ private:
 
     void send_ack(uint32_t ack_no);
 
-    void write_packet(std::ofstream &output_stream, char *data, int len);
-
     State handle_wait_for_packet_zero(std::ofstream &output_stream);
 
     State handle_wait_for_packet_one(std::ofstream &output_stream);
