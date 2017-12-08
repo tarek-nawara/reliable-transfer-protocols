@@ -5,37 +5,19 @@
 
 #include "socket_utils.h"
 #include "StopWaitServer.h"
-
-sockaddr_in &init_server_addr(sockaddr_in &server_addr);
-void set_connection_time_out(int server_socket);
+#define CON_TIME_OUT 1
 
 int main() {
     int server_socket = utils::socket_wrapper();
     struct sockaddr_in server_addr;
+    auto params = utils::read_parameters("server.in");
 
-    server_addr = init_server_addr(server_addr);
+    utils::init_server_addr(server_addr, std::stoi((*params)[0]), std::stoi((*params)[1]));
     utils::bind_wrapper(server_socket, (struct sockaddr *) &server_addr, sizeof(server_addr));
-    set_connection_time_out(server_socket);
+    utils::set_connection_time_out(server_socket, CON_TIME_OUT);
     std::cout << "---Server start---" << '\n';
     std::cout << "---Socket number=" << server_socket << '\n';
-    StopWaitServer server{server_socket, 0.5, 20};
+    StopWaitServer server{server_socket, std::stod((*params)[4]), std::stoi((*params)[3])};
     server.handle_client_request();
     return 0;
-}
-
-sockaddr_in &init_server_addr(sockaddr_in &server_addr) {
-    memset(&server_addr, 0, sizeof(server_addr));
-    server_addr.sin_family = AF_INET;
-    server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-    server_addr.sin_port = htons(5000);
-    return server_addr;
-}
-
-void set_connection_time_out(int server_socket) {
-    struct timeval tv;
-    tv.tv_sec = 1;
-    tv.tv_usec = 0;
-    if (setsockopt(server_socket, SOL_SOCKET, SO_RCVTIMEO,&tv,sizeof(tv)) < 0) {
-        perror("Error");
-    }
 }

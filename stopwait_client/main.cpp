@@ -1,4 +1,5 @@
-/** File: main.cpp
+/**
+ *  File: main.cpp
  *  Description: entry point for alternating_client
  *  Created at: 2017-12-1
  */

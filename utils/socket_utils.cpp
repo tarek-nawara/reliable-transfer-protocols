@@ -182,8 +182,8 @@ namespace utils {
     void init_server_addr(sockaddr_in &server_addr, std::uint32_t ip_addr, uint16_t port_number) {
         memset(&server_addr, 0, sizeof(server_addr));
         server_addr.sin_family = AF_INET;
-        server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-        server_addr.sin_port = htons(5000);
+        server_addr.sin_addr.s_addr = htonl(ip_addr);
+        server_addr.sin_port = htons(port_number);
     }
 
     void write_packet(std::ofstream &output_stream, Packet *packet) {
