@@ -11,7 +11,6 @@
 #include "socket_utils.h"
 
 #define TIME_OUT_DURATION 2
-#define WINDOW_SIZE 10
 
 typedef SentPacket* SentPacketPtr;
 
@@ -25,10 +24,11 @@ private:
     struct sockaddr_in client_addr;
     int server_socket;
     double plp;
-    SentPacketPtr *window = new SentPacketPtr[WINDOW_SIZE];
+    uint32_t window_size = 10;
+    SentPacketPtr *window = new SentPacketPtr[window_size];
     uint32_t base = 0;
     uint32_t next_seqno = 0;
-    int sent_count = 0;
+    uint32_t sent_count = 0;
 
     void send_packet(utils::Packet *packet);
 
@@ -40,11 +40,13 @@ private:
 
     utils::Packet *create_packet(std::ifstream &input_stream);
 
-    long handle_send_state(std::ifstream &input_stream, long chunk_count);
+    void handle_ack(utils::AckPacket *ack_packet);
 
-    void handle_ack(utils::AckPacket *packet);
+    uint32_t packet_clean_up();
 
-    void packet_clean_up();
+    void handle_send_state(std::ifstream &input_stream);
+
+    void send_header_packet(long chunk_count, int window_size);
 };
 
 

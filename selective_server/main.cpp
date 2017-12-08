@@ -1,22 +1,25 @@
-/** File: main.cpp
+/**
+ *  File: main.cpp
  *  Description: entry point for the selective server
  *  Created at: 2017-12-1
  */
 
 #include "socket_utils.h"
-
-void set_connection_time_out(int server_socket);
+#include "SelectiveServer.h"
+#define CON_TIME_OUT 1
 
 int main() {
-	std::cout << "hello world" << '\n';
-	return 0;
-}
+	int server_socket = utils::socket_wrapper();
+	struct sockaddr_in server_addr;
+	auto params = utils::read_parameters("server.in");
 
-void set_connection_time_out(int server_socket) {
-	struct timeval tv;
-	tv.tv_sec = 1;
-	tv.tv_usec = 0;
-	if (setsockopt(server_socket, SOL_SOCKET, SO_RCVTIMEO,&tv,sizeof(tv)) < 0) {
-		perror("Error");
-	}
+	utils::init_server_addr(server_addr, std::stoi((*params)[0]), std::stoi((*params)[1]));
+	utils::bind_wrapper(server_socket, (struct sockaddr *) &server_addr, sizeof(server_addr));
+	utils::set_connection_time_out(server_socket, CON_TIME_OUT);
+	std::cout << "---Server start---" << '\n';
+	std::cout << "---Socket number=" << server_socket << '\n';
+	SelectiveServer server{server_socket, std::stod((*params)[4]), std::stoi((*params)[3])};
+	server.handle_client_request();
+	return 0;
+
 }

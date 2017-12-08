@@ -12,9 +12,13 @@ SelectiveServer::SelectiveServer(int server_socket, double plp, unsigned int see
     this->server_socket = server_socket;
     this->plp = plp;
     srand(seed);
+    for (size_t i = 0; i < window_size; ++i) {
+        this->window[i] = nullptr;
+    }
 }
 
-void SelectiveServer::handle_client_request() {
+void
+SelectiveServer::handle_client_request() {
     auto *request_packet = new utils::Packet();
     while (true) {
         socklen_t client_add_size = sizeof(client_addr);
@@ -40,54 +44,70 @@ SelectiveServer::handle_sending_file(utils::Packet *request_packet) {
     if (chunk_count == 0) {
         return;
     }
+    send_header_packet(chunk_count, window_size);
     auto *ack_packet = new utils::AckPacket();
     socklen_t client_add_size = sizeof(client_addr);
     std::cout << "[handle_sending_file]---File size=" << file_size << '\n';
     std::cout << "[handle_sending_file]---Chunk count=" << chunk_count << '\n';
-    while (chunk_count > 0) {
-        if (sent_count < WINDOW_SIZE) {
-            chunk_count = handle_send_state(input_stream, chunk_count);
+    while (chunk_count > 0 || sent_count > 0) {
+        if (sent_count < window_size && chunk_count > 0) {
+            handle_send_state(input_stream);
+            --chunk_count;
         }
         ssize_t recv_res = recvfrom(server_socket, ack_packet, sizeof(*ack_packet), 0,
                                     (struct sockaddr *) &client_addr, &client_add_size);
         if (recv_res > 0) {
             handle_ack(ack_packet);
         }
-        packet_clean_up();
+        sent_count = packet_clean_up();
+        std::cout << "[handle_sending_file]---Chunk count=" << chunk_count
+                  << " sent_count=" << sent_count << '\n';
     }
 }
 
-void
+uint32_t
 SelectiveServer::packet_clean_up() {
-    for (uint32_t i = base; i <= next_seqno; i = (i + 1) % WINDOW_SIZE) {
+    uint32_t sent_count = 0;
+    for (uint32_t i = base; i < next_seqno; i = (i + 1) % window_size) {
         if (window[i] == nullptr) continue;
+        ++sent_count;
+        std::cout << "[packet_clean_up]---Waiting for ack of packet number=" << window[i]->packet->seqno << '\n';
         double seconds_passed = difftime(time(nullptr), window[i]->sent_time);
         if (seconds_passed >= TIME_OUT_DURATION) {
             send_packet_with_prob(window[i]->packet);
             window[i]->sent_time = time(nullptr);
         }
     }
+    return sent_count;
 }
 
 void
-SelectiveServer::handle_ack(utils::AckPacket *packet) {
-    window[packet->seqno] = nullptr;
-    --sent_count;
-    while (window[base] == nullptr) {
-        base = (base + 1) % WINDOW_SIZE;
+SelectiveServer::handle_ack(utils::AckPacket *ack_packet) {
+    std::cout << "[handle_ack]---Received ack number=" << ack_packet->seqno << '\n';
+    if (window[ack_packet->seqno] == nullptr) return;
+    window[ack_packet->seqno] = nullptr;
+    uint32_t loop_count = 0;
+    while (window[base] == nullptr && loop_count < window_size) {
+        base = (base + 1) % window_size;
+        ++loop_count;
     }
 }
 
-long
-SelectiveServer::handle_send_state(std::ifstream &input_stream, long chunk_count) {
+void
+SelectiveServer::handle_send_state(std::ifstream &input_stream) {
     time_t sent_time = time(nullptr);
     auto *packet = create_packet(input_stream);
     window[next_seqno] = new SentPacket(packet, sent_time);
     send_packet_with_prob(packet);
-    next_seqno = (next_seqno + 1) % WINDOW_SIZE;
-    ++sent_count;
-    --chunk_count;
-    return chunk_count;
+    next_seqno = (next_seqno + 1) % window_size;
+}
+
+void
+SelectiveServer::send_header_packet(long chunk_count, int window_size) {
+    auto *header_packet = new utils::Packet();
+    header_packet->seqno = chunk_count;
+    header_packet->len = window_size;
+    send_packet(header_packet);
 }
 
 utils::Packet *
@@ -121,8 +141,10 @@ SelectiveServer::send_packet_with_prob(utils::Packet *packet) {
 
 bool
 SelectiveServer::should_send_packet() {
+    if (plp <= 1e-5) {
+        return true;
+    }
     return ((double) rand() / RAND_MAX) > this->plp;
 }
-
 
 
