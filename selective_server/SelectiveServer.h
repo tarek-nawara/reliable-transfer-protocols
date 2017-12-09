@@ -17,6 +17,7 @@ typedef SentPacket* SentPacketPtr;
 class SelectiveServer {
 public:
     SelectiveServer(int server_socket, double plp, unsigned int seed);
+    ~SelectiveServer();
 
     void handle_client_request();
 
@@ -38,15 +39,15 @@ private:
 
     void handle_sending_file(utils::Packet *packet);
 
-    utils::Packet *create_packet(std::ifstream &input_stream);
-
     void handle_ack(utils::AckPacket *ack_packet);
 
     uint32_t packet_clean_up();
 
-    void handle_send_state(std::ifstream &input_stream);
-
     void send_header_packet(long chunk_count, int window_size);
+
+    utils::Packet *create_packet(std::ifstream &input_stream, long chunk_count, long file_size);
+
+    void handle_send_state(std::ifstream &input_stream, long chunk_count, long file_size);
 };
 
 

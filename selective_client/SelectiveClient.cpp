@@ -14,6 +14,13 @@ SelectiveClient::SelectiveClient(int server_socket, sockaddr_in &server_addr, do
     this->plp = plp;
 }
 
+SelectiveClient::~SelectiveClient() {
+    for (size_t i = 0; i < this->window_size; ++i) {
+        delete window[i];
+    }
+    delete[] window;
+}
+
 void
 SelectiveClient::request_file(std::string &filename) {
     socklen_t server_addr_size = sizeof(server_addr);
@@ -28,6 +35,8 @@ SelectiveClient::request_file(std::string &filename) {
     this->window_size = header_packet->len;
     this->window = new PacketPtr[this->window_size];
 
+    delete header_packet;
+
     for (size_t i = 0; i < this->window_size; ++i) {
         this->window[i] = nullptr;
     }
@@ -35,16 +44,16 @@ SelectiveClient::request_file(std::string &filename) {
     while (chunk_count > 0) {
         auto *data_packet = new utils::Packet();
         ssize_t recv_code = recvfrom(server_socket, data_packet, sizeof(*data_packet), 0,
-                                    (struct sockaddr *) &server_addr, &server_addr_size);
+                                     (struct sockaddr *) &server_addr, &server_addr_size);
         if (recv_code > 0) {
             send_ack(data_packet->seqno);
-           // if (std::abs(data_packet->seqno - (double)recv_base) < window_size) {
-                window[data_packet->seqno] = data_packet;
-                std::cout << "[request_file]---Receiving new packet with seqno=" << data_packet->seqno << '\n';
-                --chunk_count;
-           // }
+            // if (std::abs(data_packet->seqno - (double)recv_base) < window_size) {
+            window[data_packet->seqno] = data_packet;
+            std::cout << "[request_file]---Receiving new packet with seqno=" << data_packet->seqno << '\n';
+            --chunk_count;
+            // }
         }
-	std::cout << "[request_file]---Chunk count=" << chunk_count << '\n';
+        std::cout << "[request_file]---Chunk count=" << chunk_count << '\n';
         packet_clean_up(output_stream);
     }
     output_stream << std::flush;
@@ -52,13 +61,13 @@ SelectiveClient::request_file(std::string &filename) {
 
 void
 SelectiveClient::send_request_file_packet(std::string &filename) {
-    auto *packet = new utils::Packet();
+    auto packet = std::make_unique<utils::Packet>();
     packet->seqno = 0;
-    packet->len = filename.length();
+    packet->len = static_cast<uint16_t>(filename.length());
     for (size_t i = 0; i < filename.length(); ++i) {
         packet->data[i] = filename[i];
     }
-    sendto_wrapper(server_socket, packet, sizeof(packet) + sizeof(packet->data),
+    sendto_wrapper(server_socket, packet.get(), sizeof(*packet) + sizeof(packet->data),
                    (struct sockaddr *) &server_addr, sizeof(server_addr));
     std::cout << "[send_request_file_packet]---Send request packet successfully" << '\n';
 }
@@ -68,6 +77,7 @@ SelectiveClient::packet_clean_up(std::ofstream &output_stream) {
     std::cout << "[packet_clean_up]" << '\n';
     while (window[recv_base] != nullptr) {
         write_packet(output_stream, window[recv_base]);
+        delete window[recv_base];
         window[recv_base] = nullptr;
         recv_base = (recv_base + 1) % window_size;
     }
@@ -83,9 +93,9 @@ SelectiveClient::send_ack_with_prob(uint32_t ack_no) {
 
 void
 SelectiveClient::send_ack(uint32_t ack_no) {
-    auto *ack_packet = new utils::AckPacket();
+    auto ack_packet = std::make_unique<utils::AckPacket>();
     ack_packet->seqno = ack_no;
-    utils::sendto_wrapper(server_socket, ack_packet, sizeof(ack_packet),
+    utils::sendto_wrapper(server_socket, ack_packet.get(), sizeof(*(ack_packet)),
                           (struct sockaddr *) &server_addr, sizeof(server_addr));
     std::cout << "[send_ack]---Send ack packet with ackno=" << ack_no << '\n';
 }

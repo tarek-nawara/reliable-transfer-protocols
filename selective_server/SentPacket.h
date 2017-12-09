@@ -16,6 +16,7 @@ public:
     time_t sent_time;
 
     SentPacket(utils::Packet *packet, time_t sent_time);
+    ~SentPacket();
 private:
 };
 

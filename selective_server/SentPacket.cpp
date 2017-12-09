@@ -10,3 +10,7 @@ SentPacket::SentPacket(utils::Packet *packet, time_t sent_time) {
     this->packet = packet;
     this->sent_time = sent_time;
 }
+
+SentPacket::~SentPacket() {
+    delete packet;
+}
