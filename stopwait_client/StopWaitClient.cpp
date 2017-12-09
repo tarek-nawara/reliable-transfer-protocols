@@ -14,13 +14,13 @@ StopWaitClient::StopWaitClient(int server_socket, sockaddr_in &server_addr) {
 
 void
 StopWaitClient::request_file(std::string &filename) {
-    auto *packet = new utils::Packet();
+    auto packet = std::make_unique<utils::Packet>();
     packet->seqno = 0;
-    packet->len = filename.length();
+    packet->len = static_cast<uint16_t>(filename.length());
     for (size_t i = 0; i < filename.length(); ++i) {
         packet->data[i] = filename[i];
     }
-    utils::sendto_wrapper(server_socket, packet, sizeof(packet) + sizeof(packet->data),
+    utils::sendto_wrapper(server_socket, packet.get(), sizeof(*packet) + sizeof(packet->data),
                           (struct sockaddr *) &server_addr, sizeof(server_addr));
     std::cout << "[request_file]---Send packet successfully" << '\n';
     std::ofstream output_stream;
@@ -54,13 +54,13 @@ StopWaitClient::handle_wait_for_packet_one(std::ofstream &output_stream) {
 
 StopWaitClient::State
 StopWaitClient::handle_wait_for_packet(uint32_t seqno, StopWaitClient::State next_state, std::ofstream &output_stream) {
-    auto *packet = new utils::Packet();
+    auto packet = std::make_unique<utils::Packet>();
     while (true) {
         socklen_t server_addr_size = sizeof(server_addr);
-        ssize_t recv_res = recvfrom(server_socket, packet, sizeof(*packet), 0,
+        ssize_t recv_res = recvfrom(server_socket, packet.get(), sizeof(*packet), 0,
                                     (struct sockaddr *) &server_addr, &server_addr_size);
         if (recv_res > 0 && packet->seqno == seqno) {
-            utils::write_packet(output_stream, packet);
+            utils::write_packet(output_stream, packet.get());
             send_ack(seqno);
             return next_state;
         } else if (recv_res > 0 && packet->len == 0) {
@@ -73,9 +73,9 @@ StopWaitClient::handle_wait_for_packet(uint32_t seqno, StopWaitClient::State nex
 
 void
 StopWaitClient::send_ack(uint32_t ack_no) {
-    auto *ack_packet = new utils::AckPacket();
+    auto ack_packet = std::make_unique<utils::AckPacket>();
     ack_packet->seqno = ack_no;
-    utils::sendto_wrapper(server_socket, ack_packet, sizeof(ack_packet),
+    utils::sendto_wrapper(server_socket, ack_packet.get(), sizeof(*ack_packet),
                           (struct sockaddr *) &server_addr, sizeof(server_addr));
     std::cout << "[send_ack]---Send ack packet with ackno=" << ack_no << '\n';
 }
