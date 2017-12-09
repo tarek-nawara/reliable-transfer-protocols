@@ -4,7 +4,6 @@
  *  Created at: 2017-12-8
  */
 
-#include <socket_utils.h>
 #include "SelectiveClient.h"
 
 SelectiveClient::SelectiveClient(int server_socket, sockaddr_in &server_addr, double plp, unsigned int seed) {
@@ -30,12 +29,10 @@ SelectiveClient::request_file(std::string &filename) {
     std::ofstream output_stream;
     output_stream.open(filename);
 
-    auto *header_packet = receive_header_packet();
+    auto header_packet = receive_header_packet();
     auto chunk_count = header_packet->seqno;
     this->window_size = header_packet->len;
     this->window = new PacketPtr[this->window_size];
-
-    delete header_packet;
 
     for (size_t i = 0; i < this->window_size; ++i) {
         this->window[i] = nullptr;
@@ -76,7 +73,7 @@ void
 SelectiveClient::packet_clean_up(std::ofstream &output_stream) {
     std::cout << "[packet_clean_up]" << '\n';
     while (window[recv_base] != nullptr) {
-        write_packet(output_stream, window[recv_base]);
+        utils::write_packet(output_stream, window[recv_base]);
         delete window[recv_base];
         window[recv_base] = nullptr;
         recv_base = (recv_base + 1) % window_size;
@@ -100,19 +97,12 @@ SelectiveClient::send_ack(uint32_t ack_no) {
     std::cout << "[send_ack]---Send ack packet with ackno=" << ack_no << '\n';
 }
 
-void
-SelectiveClient::write_packet(std::ofstream &output_stream, utils::Packet *packet) {
-    for (int i = 0; i < packet->len; ++i) {
-        output_stream << packet->data[i];
-    }
-}
-
-utils::Packet *
+std::unique_ptr<utils::Packet>
 SelectiveClient::receive_header_packet() {
-    auto *header_packet = new utils::Packet();
+    auto header_packet = std::make_unique<utils::Packet>();
     socklen_t server_addr_size = sizeof(server_addr);
     while (true) {
-        ssize_t recv_res = recvfrom(server_socket, header_packet, sizeof(*header_packet), 0,
+        ssize_t recv_res = recvfrom(server_socket, header_packet.get(), sizeof(*header_packet), 0,
                                     (struct sockaddr *) &server_addr, &server_addr_size);
         if (recv_res > 0) {
             return header_packet;

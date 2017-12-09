@@ -27,13 +27,11 @@ private:
 
     void send_ack(uint32_t ack_no);
 
-    void write_packet(std::ofstream &output_stream, utils::Packet *packet);
-
     void packet_clean_up(std::ofstream &output_stream);
 
     void send_request_file_packet(std::string &filename);
 
-    utils::Packet *receive_header_packet();
+    std::unique_ptr<utils::Packet> receive_header_packet();
 
     bool should_send_packet();
 
