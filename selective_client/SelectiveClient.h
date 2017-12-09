@@ -14,6 +14,7 @@ typedef utils::Packet* PacketPtr;
 class SelectiveClient {
 public:
     SelectiveClient(int server_socket, sockaddr_in &server_addr, double plp, unsigned int seed);
+    ~SelectiveClient();
 
     void request_file(std::string &filename);
 private:
