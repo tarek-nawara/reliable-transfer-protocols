@@ -4,14 +4,11 @@
  *  Created at: 2017-12-8
  */
 
-#include <socket_utils.h>
 #include "SelectiveClient.h"
 
-SelectiveClient::SelectiveClient(int server_socket, sockaddr_in &server_addr, double plp, unsigned int seed) {
+SelectiveClient::SelectiveClient(int server_socket, sockaddr_in &server_addr) {
     this->server_socket = server_socket;
     this->server_addr = server_addr;
-    srand(seed);
-    this->plp = plp;
 }
 
 SelectiveClient::~SelectiveClient() {
@@ -33,9 +30,7 @@ SelectiveClient::request_file(std::string &filename) {
     auto header_packet = receive_header_packet();
     auto chunk_count = header_packet->seqno;
 
-    for (size_t i = 0; i < WINDOW_SIZE; ++i) {
-        this->window[i] = nullptr;
-    }
+    std::fill(window, window + WINDOW_SIZE, nullptr);
 
     while (chunk_count > 0) {
         auto *data_packet = new utils::Packet();

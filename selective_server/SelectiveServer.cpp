@@ -12,9 +12,7 @@ SelectiveServer::SelectiveServer(int server_socket, double plp, unsigned int see
     srand(seed);
     this->max_window_size = max_window_size;
     std::cout << "max_window_size=" << max_window_size << '\n';
-    for (size_t i = 0; i < window_size; ++i) {
-        this->window[i] = nullptr;
-    }
+    std::fill(window, window + window_size, nullptr);
 }
 
 SelectiveServer::~SelectiveServer() {
@@ -86,11 +84,6 @@ SelectiveServer::packet_clean_up() {
         ++sent_count;
         std::cout << "[packet_clean_up]---Waiting for ack of packet number=" << window[loop_count]->packet->seqno
                   << '\n';
-        std::cout << "problem here" << '\n';
-        std::cout << "window size=" << window_size << '\n';
-        if (window[loop_count] == nullptr || window[loop_count]->packet == nullptr) {
-            std::cout << "oooooooooooooooooooohhhhhhh" << '\n';
-        }
         double seconds_passed = difftime(time(nullptr), window[loop_count]->sent_time);
         if (seconds_passed >= TIME_OUT_DURATION) {
             ++timed_out_packets;
@@ -99,7 +92,7 @@ SelectiveServer::packet_clean_up() {
             window[loop_count]->sent_time = time(nullptr);
         }
     }
-    if (timed_out_packets > 0 && window_size > 1) {
+    if (timed_out_packets > 0 && window_size > 1 && sent_count <= (window_size / 2)) {
         resize(window_size / 2);
     }
     return sent_count;
@@ -187,22 +180,14 @@ SelectiveServer::should_send_packet() {
 void
 SelectiveServer::resize(uint32_t new_size) {
     std::cout << "[resize]---Begin resizing window with new size=" << new_size << '\n';
-    uint32_t unack_count = 0;
-    for (uint32_t i = 0; i < window_size; ++i) {
-        if (window[i] != nullptr) ++unack_count;
-    }
-    if (unack_count > new_size) {
-        return;
-    }
     auto *new_window = new SentPacketPtr[new_size];
+    std::fill(new_window, new_window + new_size, nullptr);
     uint32_t idx = 0;
     for (uint32_t i = 0; i < window_size; ++i) {
         if (window[i] == nullptr) continue;
         new_window[idx++] = window[i];
     }
-    for (uint32_t i = idx; i < new_size; ++i) {
-        new_window[i] = nullptr;
-    }
+    delete[] window;
     window = new_window;
     window_size = new_size;
     base = 0;

@@ -15,8 +15,8 @@ int main() {
     auto params = utils::read_parameters("client.in");
     utils::init_server_addr(server_addr, std::stoi((*params)[0]), std::stoi((*params)[1]));
     utils::set_connection_time_out(server_socket, CON_TIME_OUT);
-    SelectiveClient client{server_socket, server_addr, std::stod((*params)[2]), std::stoi((*params)[3])};
-    std::string filename = (*params)[4];
+    SelectiveClient client{server_socket, server_addr};
+    std::string filename = (*params)[2];
     client.request_file(filename);
     return 0;
 }
