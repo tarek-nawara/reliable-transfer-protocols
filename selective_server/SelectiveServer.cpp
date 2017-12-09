@@ -4,14 +4,14 @@
  *  Created at: 2017-12-8
  */
 
-#include <socket_utils.h>
 #include "SelectiveServer.h"
 
-
-SelectiveServer::SelectiveServer(int server_socket, double plp, unsigned int seed) {
+SelectiveServer::SelectiveServer(int server_socket, double plp, unsigned int seed, uint32_t max_window_size) {
     this->server_socket = server_socket;
     this->plp = plp;
     srand(seed);
+    this->max_window_size = max_window_size;
+    std::cout << "max_window_size=" << max_window_size << '\n';
     for (size_t i = 0; i < window_size; ++i) {
         this->window[i] = nullptr;
     }
@@ -51,13 +51,14 @@ SelectiveServer::handle_sending_file(utils::Packet *request_packet) {
     if (chunk_count == 0) {
         return;
     }
-    send_header_packet(chunk_count, window_size);
+    send_header_packet(chunk_count, 20);
     auto ack_packet = std::make_unique<utils::AckPacket>();
     socklen_t client_add_size = sizeof(client_addr);
     std::cout << "[handle_sending_file]---File size=" << file_size << '\n';
     std::cout << "[handle_sending_file]---Chunk count=" << chunk_count << '\n';
+    std::cout << "[handle_sending_file]---Initial window size=" << window_size << '\n';
     while (chunk_count > 0 || sent_count > 0) {
-        if (chunk_count > 0 && window[next_seqno] == nullptr) {
+        if (chunk_count > 0 && window[next_seq_no] == nullptr && sent_count < window_size) {
             handle_send_state(input_stream, chunk_count, file_size);
             --chunk_count;
         }
@@ -67,25 +68,39 @@ SelectiveServer::handle_sending_file(utils::Packet *request_packet) {
             handle_ack(ack_packet.get());
         }
         sent_count = packet_clean_up();
+        std::cout << "finished packet clean up" << '\n';
         std::cout << "[handle_sending_file]---Chunk count=" << chunk_count
-                  << " sent_count=" << sent_count << '\n';
+                  << " sent_count=" << sent_count << " window_size=" << window_size << '\n';
+        if (timed_out_packets == 0 && window_size < max_window_size) {
+            resize(window_size + 1);
+        }
     }
 }
 
 uint32_t
 SelectiveServer::packet_clean_up() {
     uint32_t sent_count = 0;
-    uint32_t idx = base;
-    for (uint32_t loop_count = 0; loop_count < window_size; ++loop_count, idx = (idx + 1) % window_size) {
-        if (window[idx] == nullptr) continue;
+    timed_out_packets = 0;
+    for (uint32_t loop_count = 0; loop_count < window_size; ++loop_count) {
+        if (window[loop_count] == nullptr) continue;
         ++sent_count;
-        std::cout << "[packet_clean_up]---Waiting for ack of packet number=" << window[idx]->packet->seqno << '\n';
-        double seconds_passed = difftime(time(nullptr), window[idx]->sent_time);
-        if (seconds_passed >= TIME_OUT_DURATION) {
-            std::cout << "[packet_clean_up]---Resending packet number=" << window[idx]->packet->seqno << '\n';
-            send_packet_with_prob(window[idx]->packet);
-            window[idx]->sent_time = time(nullptr);
+        std::cout << "[packet_clean_up]---Waiting for ack of packet number=" << window[loop_count]->packet->seqno
+                  << '\n';
+        std::cout << "problem here" << '\n';
+        std::cout << "window size=" << window_size << '\n';
+        if (window[loop_count] == nullptr || window[loop_count]->packet == nullptr) {
+            std::cout << "oooooooooooooooooooohhhhhhh" << '\n';
         }
+        double seconds_passed = difftime(time(nullptr), window[loop_count]->sent_time);
+        if (seconds_passed >= TIME_OUT_DURATION) {
+            ++timed_out_packets;
+            std::cout << "[packet_clean_up]---Resending packet number=" << window[loop_count]->packet->seqno << '\n';
+            send_packet_with_prob(window[loop_count]->packet);
+            window[loop_count]->sent_time = time(nullptr);
+        }
+    }
+    if (timed_out_packets > 0 && window_size > 1) {
+        resize(window_size / 2);
     }
     return sent_count;
 }
@@ -93,9 +108,18 @@ SelectiveServer::packet_clean_up() {
 void
 SelectiveServer::handle_ack(utils::AckPacket *ack_packet) {
     std::cout << "[handle_ack]---Received ack number=" << ack_packet->seqno << '\n';
-    if (window[ack_packet->seqno] == nullptr) return;
-    delete window[ack_packet->seqno];
-    window[ack_packet->seqno] = nullptr;
+    for (uint32_t i = 0; i < window_size; ++i) {
+        if (window[i] == nullptr) continue;
+        if (window[i]->packet->seqno == ack_packet->seqno) {
+            clean_packet(i);
+            return;
+        }
+    }
+}
+
+void SelectiveServer::clean_packet(uint32_t packet_num) {
+    delete window[packet_num];
+    window[packet_num] = nullptr;
     uint32_t loop_count = 0;
     while (window[base] == nullptr && loop_count < window_size) {
         base = (base + 1) % window_size;
@@ -105,14 +129,15 @@ SelectiveServer::handle_ack(utils::AckPacket *ack_packet) {
 
 void
 SelectiveServer::handle_send_state(std::ifstream &input_stream, long chunk_count, long file_size) {
-    if (window[next_seqno] != nullptr) {
+    if (window[next_seq_no] != nullptr) {
         std::cout << "[handle_send_state]---Error sending before receiving ack" << '\n';
     }
     time_t sent_time = time(nullptr);
     auto *packet = create_packet(input_stream, chunk_count, file_size);
-    window[next_seqno] = new SentPacket(packet, sent_time);
+    window[next_seq_no] = new SentPacket(packet, sent_time);
     send_packet_with_prob(packet);
-    next_seqno = (next_seqno + 1) % window_size;
+    ++real_next_seq_no;
+    next_seq_no = (next_seq_no + 1) % window_size;
 }
 
 void
@@ -132,7 +157,7 @@ SelectiveServer::create_packet(std::ifstream &input_stream, long chunk_count, lo
     auto *packet = new utils::Packet();
     input_stream.read(packet->data, send_len);
     packet->len = static_cast<uint16_t>(send_len);
-    packet->seqno = next_seqno;
+    packet->seqno = real_next_seq_no;
     return packet;
 }
 
@@ -157,5 +182,30 @@ SelectiveServer::should_send_packet() {
         return true;
     }
     return ((double) rand() / RAND_MAX) > this->plp;
+}
+
+void
+SelectiveServer::resize(uint32_t new_size) {
+    std::cout << "[resize]---Begin resizing window with new size=" << new_size << '\n';
+    uint32_t unack_count = 0;
+    for (uint32_t i = 0; i < window_size; ++i) {
+        if (window[i] != nullptr) ++unack_count;
+    }
+    if (unack_count > new_size) {
+        return;
+    }
+    auto *new_window = new SentPacketPtr[new_size];
+    uint32_t idx = 0;
+    for (uint32_t i = 0; i < window_size; ++i) {
+        if (window[i] == nullptr) continue;
+        new_window[idx++] = window[i];
+    }
+    for (uint32_t i = idx; i < new_size; ++i) {
+        new_window[i] = nullptr;
+    }
+    window = new_window;
+    window_size = new_size;
+    base = 0;
+    next_seq_no = idx;
 }
 

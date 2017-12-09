@@ -39,7 +39,7 @@
 #define MEDIUMLINE 256
 #define MINILINE 16
 #define MAXPINDING 5
-#define PACKET_LEN 50
+#define PACKET_LEN 512
 
 namespace utils {
 

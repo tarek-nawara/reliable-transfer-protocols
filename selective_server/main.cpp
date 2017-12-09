@@ -18,8 +18,7 @@ int main() {
 	utils::set_connection_time_out(server_socket, CON_TIME_OUT);
 	std::cout << "---Server start---" << '\n';
 	std::cout << "---Socket number=" << server_socket << '\n';
-	SelectiveServer server{server_socket, std::stod((*params)[4]), std::stoi((*params)[3])};
+	SelectiveServer server{server_socket, std::stod((*params)[4]), std::stoi((*params)[3]), std::stoi((*params)[2])};
 	server.handle_client_request();
 	return 0;
-
 }

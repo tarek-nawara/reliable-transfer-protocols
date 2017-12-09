@@ -8,6 +8,7 @@
 #define SELECTIVE_CLIENT_SELECTIVECLIENT_H
 
 #include "socket_utils.h"
+#define WINDOW_SIZE 100
 
 typedef utils::Packet* PacketPtr;
 
@@ -18,10 +19,10 @@ public:
 
     void request_file(std::string &filename);
 private:
-    uint32_t window_size = 10;
+    uint32_t real_base = 0;
     int server_socket;
     struct sockaddr_in server_addr;
-    PacketPtr *window;
+    PacketPtr *window = new PacketPtr[WINDOW_SIZE];
     uint32_t recv_base = 0;
     double plp;
 
@@ -32,10 +33,6 @@ private:
     void send_request_file_packet(std::string &filename);
 
     std::unique_ptr<utils::Packet> receive_header_packet();
-
-    bool should_send_packet();
-
-    void send_ack_with_prob(uint32_t ack_no);
 };
 
 

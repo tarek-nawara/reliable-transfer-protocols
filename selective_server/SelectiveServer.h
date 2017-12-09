@@ -16,7 +16,8 @@ typedef SentPacket* SentPacketPtr;
 
 class SelectiveServer {
 public:
-    SelectiveServer(int server_socket, double plp, unsigned int seed);
+    SelectiveServer(int server_socket, double plp, unsigned int seed, uint32_t max_window_size);
+
     ~SelectiveServer();
 
     void handle_client_request();
@@ -25,11 +26,14 @@ private:
     struct sockaddr_in client_addr;
     int server_socket;
     double plp;
-    uint32_t window_size = 10;
+    uint32_t window_size = 100;
+    uint32_t timed_out_packets = 0;
     SentPacketPtr *window = new SentPacketPtr[window_size];
-    uint32_t base = 0;
-    uint32_t next_seqno = 0;
+    uint32_t real_next_seq_no = 0;
     uint32_t sent_count = 0;
+    uint32_t max_window_size = 0;
+    uint32_t base = 0;
+    uint32_t next_seq_no = 0;
 
     void send_packet(utils::Packet *packet);
 
@@ -48,6 +52,10 @@ private:
     utils::Packet *create_packet(std::ifstream &input_stream, long chunk_count, long file_size);
 
     void handle_send_state(std::ifstream &input_stream, long chunk_count, long file_size);
+
+    void clean_packet(uint32_t packet_num);
+
+    void resize(uint32_t new_size);
 };
 
 
