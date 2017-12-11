@@ -30,6 +30,9 @@
 #include <chrono>
 #include <algorithm>
 #include <vector>
+#include <map>
+#include <queue>
+#include <functional>
 #include <memory>
 #include <sys/sendfile.h>
 #include <sys/wait.h>
