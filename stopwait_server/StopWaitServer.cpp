@@ -24,17 +24,17 @@ StopWaitServer::handle_client_request() {
             std::cout << "[handle_client_request]--- Packet seqno=" << request_packet->seqno << '\n';
             std::cout << "[handle_client_request]--- Packet len=" << request_packet->len << '\n';
             std::cout << "[handle_client_request]--- Packet data=" << std::string(request_packet->data) << '\n';
-            handle_sending_file(request_packet.get());
+            handle_sending_file(*request_packet);
             break;
         }
     }
 }
 
 void
-StopWaitServer::handle_sending_file(utils::Packet *request_packet) {
+StopWaitServer::handle_sending_file(utils::Packet &request_packet) {
     std::ifstream input_stream;
-    input_stream.open(request_packet->data);
-    this->file_size = utils::file_size(std::string(request_packet->data));
+    input_stream.open(request_packet.data);
+    this->file_size = utils::file_size(std::string(request_packet.data));
     this->chunk_count = file_size / PACKET_LEN + (file_size % PACKET_LEN != 0);
     if (chunk_count == 0) {
         return;
@@ -47,12 +47,12 @@ StopWaitServer::handle_sending_file(utils::Packet *request_packet) {
     while (chunk_count > 0 || waiting_for_ack) {
         switch (current_state) {
             case StopWaitServer::State::WAIT_FOR_ACK_ZERO: {
-                current_state = handle_wait_for_ack_zero(packet.get());
+                current_state = handle_wait_for_ack_zero(*packet);
                 waiting_for_ack = false;
                 break;
             }
             case StopWaitServer::State::WAIT_FOR_ACK_ONE: {
-                current_state = handle_wait_for_ack_one(packet.get());
+                current_state = handle_wait_for_ack_one(*packet);
                 waiting_for_ack = false;
                 break;
             }
@@ -78,16 +78,16 @@ StopWaitServer::handle_sending_file(utils::Packet *request_packet) {
     auto termination_packet = std::make_unique<utils::Packet>();
     termination_packet->seqno = 100;
     termination_packet->len = 0;
-    send_packet(termination_packet.get());
+    send_packet(*termination_packet);
 }
 
 StopWaitServer::State
-StopWaitServer::handle_wait_for_ack_zero(utils::Packet *packet_to_send) {
+StopWaitServer::handle_wait_for_ack_zero(utils::Packet &packet_to_send) {
     return handle_wait_for_ack(packet_to_send, 0, StopWaitServer::State::SENDING_PACKET_ONE);
 }
 
 StopWaitServer::State
-StopWaitServer::handle_wait_for_ack_one(utils::Packet *packet_to_send) {
+StopWaitServer::handle_wait_for_ack_one(utils::Packet &packet_to_send) {
     return handle_wait_for_ack(packet_to_send, 1, StopWaitServer::State::SENDING_PACKET_ZERO);
 }
 
@@ -102,10 +102,10 @@ StopWaitServer::handle_sending_packet_one(std::ifstream &input_stream) {
 }
 
 StopWaitServer::State
-StopWaitServer::handle_wait_for_ack(utils::Packet *packet_to_send, uint32_t ack_no, StopWaitServer::State next_state) {
+StopWaitServer::handle_wait_for_ack(utils::Packet &packet_to_send, uint32_t ack_no, StopWaitServer::State next_state) {
     std::cout << "[handle_wait_for_ack]---Waiting for ack number=" << ack_no << '\n';
     auto ack_packet = std::make_unique<utils::AckPacket>();
-    time_t start_time = time(0);
+    time_t start_time = time(nullptr);
     while (true) {
         socklen_t client_add_size = sizeof(client_addr);
         ssize_t recv_res = recvfrom(server_socket, ack_packet.get(), sizeof(*ack_packet), 0,
@@ -117,7 +117,7 @@ StopWaitServer::handle_wait_for_ack(utils::Packet *packet_to_send, uint32_t ack_
             return next_state;
         } else if (seconds_passed >= TIME_OUT_DURATION) {
             std::cout << "[handle_wait_for_ack]---Timeout, trying to send the packet again, packet number="
-                      << packet_to_send->seqno << '\n';
+                      << packet_to_send.seqno << '\n';
             send_packet_with_prob(packet_to_send);
             start_time = time(nullptr);
         }
@@ -136,21 +136,21 @@ StopWaitServer::handle_sending_packet(std::ifstream &input_stream, uint32_t pack
     input_stream.read(packet->data, sent_len);
     packet->len = static_cast<uint16_t>(sent_len);
     packet->seqno = packet_no;
-    send_packet_with_prob(packet.get());
+    send_packet_with_prob(*packet);
     return {next_state, packet};
 }
 
 void
-StopWaitServer::send_packet(utils::Packet *packet) {
-    utils::sendto_wrapper(server_socket, packet, sizeof(packet) + sizeof(packet->data),
+StopWaitServer::send_packet(utils::Packet &packet) {
+    utils::sendto_wrapper(server_socket, &packet, sizeof(packet) + sizeof(packet.data),
                           (struct sockaddr *) &client_addr, sizeof(client_addr));
     std::cout << "[send_packet]---Send packet successfully" << '\n';
 }
 
 void
-StopWaitServer::send_packet_with_prob(utils::Packet *packet) {
+StopWaitServer::send_packet_with_prob(utils::Packet &packet) {
     if (should_send_packet()) {
-        std::cout << "[handle_sending_packet]--- Sending packet no=" << packet->seqno << '\n';
+        std::cout << "[handle_sending_packet]--- Sending packet no=" << packet.seqno << '\n';
         send_packet(packet);
     }
 }

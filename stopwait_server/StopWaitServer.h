@@ -33,25 +33,22 @@ private:
     long file_size = 0;
 
     /** Handle sending an entire file to the client. */
-    void handle_sending_file(utils::Packet *request_packet);
+    void handle_sending_file(utils::Packet &request_packet);
 
     /** Handle waiting for ack zero state. */
-    State handle_wait_for_ack_zero(utils::Packet *packet_to_send);
+    State handle_wait_for_ack_zero(utils::Packet &packet_to_send);
 
     /** Handle sending the first packet state. */
     std::pair<State, std::shared_ptr<utils::Packet>> handle_sending_packet_zero(std::ifstream &input_stream);
 
     /** Handle waiting for the second ack state. */
-    State handle_wait_for_ack_one(utils::Packet *packet_to_send);
+    State handle_wait_for_ack_one(utils::Packet &packet_to_send);
 
     /** Handle sending second packet state. */
     std::pair<State, std::shared_ptr<utils::Packet>> handle_sending_packet_one(std::ifstream &input_stream);
 
-    /** Send a single packet to the client. */
-    void send_packet(utils::Packet *packet);
-
     /** Generic method for handling any wait for ack state. */
-    State handle_wait_for_ack(utils::Packet *packet_to_send, uint32_t ack_no, State next_state);
+    State handle_wait_for_ack(utils::Packet &packet_to_send, uint32_t ack_no, State next_state);
 
     /** Test wither we should send the current
      *  packet to the client or not.*/
@@ -60,11 +57,14 @@ private:
     /** Sending a packet to the client, this may or
      *  may not send the packet depending on the given
      *  probability. */
-    void send_packet_with_prob(utils::Packet *packet);
+    void send_packet_with_prob(utils::Packet &packet);
 
     /** Generic method for handling any sending packet state. */
     std::pair<State, std::shared_ptr<utils::Packet>>
     handle_sending_packet(std::ifstream &input_stream, uint32_t packet_no, State next_state);
+
+    /** Send a single packet to the client. */
+    void send_packet(utils::Packet &packet);
 };
 
 
