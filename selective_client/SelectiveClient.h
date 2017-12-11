@@ -20,7 +20,7 @@ public:
     /** Request a file from the server. */
     void request_file(std::string &filename);
 private:
-    uint32_t real_base = 0;
+    uint32_t expected_seq_no = 0;
     int server_socket;
     struct sockaddr_in server_addr;
     PacketPtr *window = new PacketPtr[WINDOW_SIZE];

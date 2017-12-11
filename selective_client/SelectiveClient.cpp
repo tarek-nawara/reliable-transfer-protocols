@@ -4,6 +4,7 @@
  *  Created at: 2017-12-8
  */
 
+#include <socket_utils.h>
 #include "SelectiveClient.h"
 
 SelectiveClient::SelectiveClient(int server_socket, sockaddr_in &server_addr) {
@@ -37,15 +38,16 @@ SelectiveClient::request_file(std::string &filename) {
         ssize_t recv_code = recvfrom(server_socket, data_packet, sizeof(*data_packet), 0,
                                      (struct sockaddr *) &server_addr, &server_addr_size);
         if (recv_code > 0) {
-            if (data_packet->seqno < real_base) {
+            if (data_packet->seqno < expected_seq_no) {
                 send_ack(data_packet->seqno);
-            } else if (data_packet->seqno >= real_base && data_packet->seqno < (real_base + WINDOW_SIZE)) {
+            } else if (data_packet->seqno >= expected_seq_no && data_packet->seqno < (expected_seq_no + WINDOW_SIZE)) {
                 send_ack(data_packet->seqno);
                 window[(data_packet->seqno) % WINDOW_SIZE] = data_packet;
                 std::cout << "[request_file]---Receiving new packet with seqno=" << data_packet->seqno << '\n';
                 --chunk_count;
             }
         }
+
         std::cout << "[request_file]---Chunk count=" << chunk_count << '\n';
         packet_clean_up(output_stream);
     }
@@ -57,9 +59,7 @@ SelectiveClient::send_request_file_packet(std::string &filename) {
     auto packet = std::make_unique<utils::Packet>();
     packet->seqno = 0;
     packet->len = static_cast<uint16_t>(filename.length());
-    for (size_t i = 0; i < filename.length(); ++i) {
-        packet->data[i] = filename[i];
-    }
+    filename.copy(packet->data, filename.length(), 0);
     sendto_wrapper(server_socket, packet.get(), sizeof(*packet) + sizeof(packet->data),
                    (struct sockaddr *) &server_addr, sizeof(server_addr));
     std::cout << "[send_request_file_packet]---Send request packet successfully" << '\n';
@@ -73,7 +73,7 @@ SelectiveClient::packet_clean_up(std::ofstream &output_stream) {
         delete window[recv_base];
         window[recv_base] = nullptr;
         recv_base = (recv_base + 1) % WINDOW_SIZE;
-        ++real_base;
+        ++expected_seq_no;
     }
 }
 
